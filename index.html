@@ -32,6 +32,7 @@ body {
 
 canvas{
   border:1px solid white;
+  touch-action:none;
 }
 </style>
 
@@ -95,10 +96,10 @@ function loop(){
 
     context.fillStyle = "white";
     context.font = "22px Arial";
-    context.fillText("Press ENTER to Start", canvas.width/2, canvas.height/2 + 20);
+    context.fillText("Press ENTER or TAP to Start", canvas.width/2, canvas.height/2 + 20);
 
     context.font = "16px Arial";
-    context.fillText("Use Arrow Keys to Move", canvas.width/2, canvas.height/2 + 50);
+    context.fillText("Arrow Keys or Swipe to Move", canvas.width/2, canvas.height/2 + 50);
 
     return;
   }
@@ -112,7 +113,7 @@ function loop(){
 
     context.fillStyle = "white";
     context.font = "20px Arial";
-    context.fillText("Press SPACE to Restart", canvas.width/2, canvas.height/2 + 30);
+    context.fillText("Press SPACE or TAP to Restart", canvas.width/2, canvas.height/2 + 30);
 
     return;
   }
@@ -129,19 +130,11 @@ function loop(){
   snake.x += snake.dx;
   snake.y += snake.dy;
 
-  if(snake.x < 0){
-    snake.x = canvas.width - grid;
-  }
-  else if(snake.x >= canvas.width){
-    snake.x = 0;
-  }
+  if(snake.x < 0) snake.x = canvas.width - grid;
+  else if(snake.x >= canvas.width) snake.x = 0;
 
-  if(snake.y < 0){
-    snake.y = canvas.height - grid;
-  }
-  else if(snake.y >= canvas.height){
-    snake.y = 0;
-  }
+  if(snake.y < 0) snake.y = canvas.height - grid;
+  else if(snake.y >= canvas.height) snake.y = 0;
 
   snake.cells.unshift({x:snake.x,y:snake.y});
 
@@ -149,7 +142,7 @@ function loop(){
     snake.cells.pop();
   }
 
-  /* Pulsing Apple */
+  /* Animated Apple */
   var pulse = Math.sin(Date.now()*0.005) * 2;
 
   context.fillStyle = "red";
@@ -171,7 +164,7 @@ function loop(){
 
     context.fillRect(cell.x,cell.y,grid-1,grid-1);
 
-    /* Snake Head Eyes */
+    /* Snake Eyes */
     if(index === 0){
 
       context.fillStyle = "black";
@@ -182,23 +175,19 @@ function loop(){
       let eyeY2 = cell.y + 10;
 
       if(snake.dx === grid){
-        eyeX1 = cell.x + 10;
-        eyeX2 = cell.x + 10;
+        eyeX1 = eyeX2 = cell.x + 10;
       }
 
       if(snake.dx === -grid){
-        eyeX1 = cell.x + 2;
-        eyeX2 = cell.x + 2;
+        eyeX1 = eyeX2 = cell.x + 2;
       }
 
       if(snake.dy === grid){
-        eyeY1 = cell.y + 10;
-        eyeY2 = cell.y + 10;
+        eyeY1 = eyeY2 = cell.y + 10;
       }
 
       if(snake.dy === -grid){
-        eyeY1 = cell.y + 2;
-        eyeY2 = cell.y + 2;
+        eyeY1 = eyeY2 = cell.y + 2;
       }
 
       context.beginPath();
@@ -230,18 +219,17 @@ function loop(){
     }
 
     for(var i=index+1;i<snake.cells.length;i++){
-
       if(cell.x === snake.cells[i].x && cell.y === snake.cells[i].y){
         gameOver = true;
       }
-
     }
 
   });
 
   context.shadowBlur = 0;
-
 }
+
+/* Restart */
 
 function restartGame(){
 
@@ -262,31 +250,75 @@ function restartGame(){
   gameOver = false;
 }
 
+/* Keyboard Controls */
+
 document.addEventListener("keydown",function(e){
 
-  if(e.which === 13 && !gameStarted){
-    gameStarted = true;
-  }
+  if(e.which === 13 && !gameStarted) gameStarted = true;
 
-  if(e.which === 32 && gameOver){
+  if(e.which === 32 && gameOver) restartGame();
+
+  if(e.which === 37 && snake.dx === 0){ snake.dx = -grid; snake.dy = 0; }
+  else if(e.which === 38 && snake.dy === 0){ snake.dy = -grid; snake.dx = 0; }
+  else if(e.which === 39 && snake.dx === 0){ snake.dx = grid; snake.dy = 0; }
+  else if(e.which === 40 && snake.dy === 0){ snake.dy = grid; snake.dx = 0; }
+
+});
+
+/* Mobile Tap Start / Restart */
+
+document.addEventListener("touchstart", function(){
+
+  if(!gameStarted){
+    gameStarted = true;
+  } else if(gameOver){
     restartGame();
   }
 
-  if(e.which === 37 && snake.dx === 0){
-    snake.dx = -grid;
-    snake.dy = 0;
-  }
-  else if(e.which === 38 && snake.dy === 0){
-    snake.dy = -grid;
-    snake.dx = 0;
-  }
-  else if(e.which === 39 && snake.dx === 0){
-    snake.dx = grid;
-    snake.dy = 0;
-  }
-  else if(e.which === 40 && snake.dy === 0){
-    snake.dy = grid;
-    snake.dx = 0;
+});
+
+/* Swipe Controls */
+
+let startX = 0;
+let startY = 0;
+
+document.addEventListener("touchstart", function(e){
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
+});
+
+document.addEventListener("touchend", function(e){
+
+  let endX = e.changedTouches[0].clientX;
+  let endY = e.changedTouches[0].clientY;
+
+  let dx = endX - startX;
+  let dy = endY - startY;
+
+  if(Math.abs(dx) > Math.abs(dy)){
+
+    if(dx > 0 && snake.dx === 0){
+      snake.dx = grid;
+      snake.dy = 0;
+    }
+
+    else if(dx < 0 && snake.dx === 0){
+      snake.dx = -grid;
+      snake.dy = 0;
+    }
+
+  } else {
+
+    if(dy > 0 && snake.dy === 0){
+      snake.dy = grid;
+      snake.dx = 0;
+    }
+
+    else if(dy < 0 && snake.dy === 0){
+      snake.dy = -grid;
+      snake.dx = 0;
+    }
+
   }
 
 });
@@ -297,3 +329,4 @@ requestAnimationFrame(loop);
 
 </body>
 </html>
+
